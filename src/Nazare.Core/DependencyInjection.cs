@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Nazare.Core.Factory;
+using Nazare.Core.Internal;
 using Nazare.Core.Strategies;
 
 namespace Nazare.Core
@@ -10,6 +11,8 @@ namespace Nazare.Core
         {
             services.AddScoped<IDeployChangesExecutorFactory, DeployChangesExecutorFactory>();
             services.AddTransient<IDeployChangesExecutor, SqlServerDeployChangesExecutor>();
+
+            services.AddScoped<IMigrationService, MigrationService>();
 
             return services;
         }

@@ -6,7 +6,14 @@ namespace Nazare.Core.Strategies
 {
     internal sealed class SqlServerDeployChangesExecutor : IDeployChangesExecutor
     {
-        private readonly IMigrationsHistoryService migrationsHistoryService;
+        private readonly IMigrationsHistoryService _migrationsHistoryService;
+        private readonly IMigrationService _migrationService;
+
+        public SqlServerDeployChangesExecutor(IMigrationsHistoryService migrationsHistoryService, IMigrationService migrationService)
+        {
+            _migrationsHistoryService = migrationsHistoryService;
+            _migrationService = migrationService;
+        }
 
         public string Strategy => DeployChangesProviders.SqlServer;
 
@@ -15,20 +22,28 @@ namespace Nazare.Core.Strategies
             var verboseMode = deployChanges.Verbose;
 
             using var conn = new SqlConnection(deployChanges.ConnectionString);
+            using var tc = conn.BeginTransaction();
             conn.Open();
 
-            migrationsHistoryService.EnsureMigrationsHistoryCreation(conn, deployChanges.Verbose);
+            _migrationsHistoryService.EnsureMigrationsHistoryCreation(conn, verboseMode);
+            _migrationService.Migrate(deployChanges, conn);
 
+            tc.Commit();
             conn.Close();
         }
 
         public async Task ExecuteAsync(DeployChanges deployChanges, CancellationToken cancellationToken)
         {
+            var verboseMode = deployChanges.Verbose;
+
             using var conn = new SqlConnection(deployChanges.ConnectionString);
+            using var tc = conn.BeginTransaction();
             conn.Open();
 
-            await migrationsHistoryService.EnsureMigrationsHistoryCreationAsync(conn, deployChanges.Verbose, cancellationToken);
+            await _migrationsHistoryService.EnsureMigrationsHistoryCreationAsync(conn, verboseMode, cancellationToken);
+            await _migrationService.MigrateAsync(deployChanges, conn, cancellationToken);
 
+            tc.Commit();
             conn.Close();
         }
     }

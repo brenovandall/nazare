@@ -20,12 +20,12 @@ namespace Nazare.Core.Internal
                 if (verbose)
                     Console.WriteLine("[BEGIN] Executing migrations creation batch.");
 
-                command.CommandText = string.Join(";", new[]
-                {
+                command.CommandText = string.Join(";",
+                [
                     GetCreateTableScript(),
                     GetCreateIdxPversionPscript(),
                     GetCreateIdxPversion()
-                });
+                ]);
 
                 command.ExecuteNonQuery();
 
@@ -41,19 +41,19 @@ namespace Nazare.Core.Internal
                 using var command = conn.CreateCommand();
 
                 if (verbose)
-                    Console.WriteLine("[BEGIN] Executing migrations creation batch.");
+                    Console.WriteLine("[BEGIN] Executing async migrations creation batch.");
 
-                command.CommandText = string.Join(";", new[]
-                {
+                command.CommandText = string.Join(";",
+                [
                     GetCreateTableScript(),
                     GetCreateIdxPversionPscript(),
                     GetCreateIdxPversion()
-                });
+                ]);
 
-                await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync(cancellationToken);
 
                 if (verbose)
-                    Console.WriteLine("[END] Creation batch executed.");
+                    Console.WriteLine("[END] Async creation batch executed.");
             }
         }
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Nazare.Core;
+using Nazare.Core.Factory;
 
 internal class Program
 {
@@ -10,6 +11,10 @@ internal class Program
         RegisterServiceContainer();
 
         var builder = CreateBuilderByArgs(args);
+        var factory = GetDeployChangesExecutorFactory();
+        var strategy = factory.Create(DeployChangesProviders.SqlServer);
+
+        strategy.Execute(builder);
 
         DisposeServiceContainer();
     }
@@ -69,6 +74,16 @@ internal class Program
         {
             disposable.Dispose();
         }
+    }
+
+    private static IDeployChangesExecutorFactory GetDeployChangesExecutorFactory()
+    {
+        var factory = _serviceProvider.GetService<IDeployChangesExecutorFactory>();
+
+        if (factory == null)
+            throw new InvalidOperationException("Null factory.");
+
+        return factory;
     }
 
     private static void ShowUsage()
