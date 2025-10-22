@@ -2,6 +2,7 @@
 {
     public class DeployChanges
     {
+        public DatabaseProvider DatabaseProvider { get; private set; } = default!;
         public string ProjectPath { get; private set; } = default!;
         public string ConnectionString { get; private set; } = default!;
         public string Schema { get; private set; } = default!;
@@ -11,6 +12,30 @@
         public DeployChanges()
         {
             Verbose = false;
+        }
+
+        public DeployChanges ToSqlServerDatabase()
+        {
+            DatabaseProvider = DatabaseProvider.SqlServer;
+            return this;
+        }
+
+        public DeployChanges ToOracleDatabase()
+        {
+            DatabaseProvider = DatabaseProvider.Oracle;
+            return this;
+        }
+
+        public DeployChanges ToPostgresqlDatabase()
+        {
+            DatabaseProvider = DatabaseProvider.Postgresql;
+            return this;
+        }
+
+        public DeployChanges ToMySqlDatabase()
+        {
+            DatabaseProvider = DatabaseProvider.MySql;
+            return this;
         }
 
         public DeployChanges WithProjectPath(string projectPath)
@@ -42,9 +67,6 @@
 
         public DeployChanges WithScriptsPath(string path)
         {
-            if (!Directory.Exists(path))
-                throw new Exception("db scripts path must be a directory.");
-
             Path = path;
             return this;
         }
@@ -57,5 +79,13 @@
             Verbose = active;
             return this;
         }
+    }
+
+    public enum DatabaseProvider
+    {
+        SqlServer,
+        Oracle,
+        Postgresql,
+        MySql
     }
 }

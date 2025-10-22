@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Nazare.Core;
+using Nazare.Core.Extensions;
 using Nazare.Core.Factory;
 
 internal class Program
@@ -28,15 +29,16 @@ internal class Program
 
         var builder = new DeployChanges();
 
-        if (!args.Contains("--project"))
-            builder.WithProjectPath(Directory.GetCurrentDirectory());
+        bool containsProject = false;
 
         for (int i = 1; i < args.Length; i++)
         {
             switch (args[i])
             {
                 case "--project":
-                    builder.WithProjectPath(Directory.GetCurrentDirectory() + args[i + 1]);
+                    //builder.WithProjectPath(Directory.GetCurrentDirectory() + args[i + 1]);
+                    builder.WithProjectPath(args[i + 1]);
+                    containsProject = true;
                     break;
                 case "-c":
                     builder.WithConnectionString(args[i + 1]);
@@ -52,6 +54,9 @@ internal class Program
                     break;
             }
         }
+
+        if (!containsProject)
+            builder.WithProjectPath(Directory.GetCurrentDirectory());
 
         return builder;
     }

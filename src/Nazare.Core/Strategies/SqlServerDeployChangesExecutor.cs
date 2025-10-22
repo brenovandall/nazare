@@ -1,10 +1,10 @@
 ﻿using Microsoft.Data.SqlClient;
-using Nazare.Core.Factory;
+using Nazare.Core.Extensions;
 using Nazare.Core.Internal;
 
 namespace Nazare.Core.Strategies
 {
-    internal sealed class SqlServerDeployChangesExecutor : IDeployChangesExecutor
+    internal class SqlServerDeployChangesExecutor : IDeployChangesExecutor
     {
         private readonly IMigrationsHistoryService _migrationsHistoryService;
         private readonly IMigrationService _migrationService;
@@ -22,11 +22,12 @@ namespace Nazare.Core.Strategies
             var verboseMode = deployChanges.Verbose;
 
             using var conn = new SqlConnection(deployChanges.ConnectionString);
-            using var tc = conn.BeginTransaction();
             conn.Open();
 
-            _migrationsHistoryService.EnsureMigrationsHistoryCreation(conn, verboseMode);
-            _migrationService.Migrate(deployChanges, conn);
+            using var tc = conn.BeginTransaction();
+
+            _migrationsHistoryService.EnsureMigrationsHistoryCreation(conn, tc, deployChanges);
+            _migrationService.Migrate(deployChanges, conn, tc);
 
             tc.Commit();
             conn.Close();
@@ -37,14 +38,15 @@ namespace Nazare.Core.Strategies
             var verboseMode = deployChanges.Verbose;
 
             using var conn = new SqlConnection(deployChanges.ConnectionString);
-            using var tc = conn.BeginTransaction();
-            conn.Open();
+            await conn.OpenAsync(cancellationToken);
 
-            await _migrationsHistoryService.EnsureMigrationsHistoryCreationAsync(conn, verboseMode, cancellationToken);
-            await _migrationService.MigrateAsync(deployChanges, conn, cancellationToken);
+            using var tc = await conn.BeginTransactionAsync(cancellationToken);
 
-            tc.Commit();
-            conn.Close();
+            await _migrationsHistoryService.EnsureMigrationsHistoryCreationAsync(conn, tc, deployChanges, cancellationToken);
+            await _migrationService.MigrateAsync(deployChanges, conn, tc, cancellationToken);
+
+            await tc.CommitAsync(cancellationToken);
+            await conn.CloseAsync();
         }
     }
 }

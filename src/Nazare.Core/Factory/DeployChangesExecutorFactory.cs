@@ -1,14 +1,23 @@
-﻿using Nazare.Core.Strategies;
+﻿using Nazare.Core.Common;
+using Nazare.Core.Strategies;
 
 namespace Nazare.Core.Factory
 {
-    internal sealed class DeployChangesExecutorFactory : IDeployChangesExecutorFactory
+    internal class DeployChangesExecutorFactory : IFactory<IDeployChangesExecutor>, IDeployChangesExecutorFactory
     {
-        private readonly IEnumerable<IDeployChangesExecutor> _strategies;
+        private readonly IDictionary<string, Func<IDeployChangesExecutor>> _strategies;
+
+        public DeployChangesExecutorFactory(IDictionary<string, Func<IDeployChangesExecutor>> strategies)
+        {
+            _strategies = strategies;
+        }
 
         public IDeployChangesExecutor Create(string strategy)
         {
-            return _strategies.First(s => s.Strategy == strategy);
+            if (!_strategies.TryGetValue(strategy, out var strat) || strat is null)
+                throw new ArgumentOutOfRangeException(nameof(strategy), $"strat '{strategy}' is not registered");
+
+            return strat();
         }
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace Nazare.Core.Strategies
+﻿using Nazare.Core.Common;
+
+namespace Nazare.Core.Strategies
 {
-    public interface IDeployChangesExecutor
+    public interface IDeployChangesExecutor : IStrategy
     {
         string Strategy { get; }
 

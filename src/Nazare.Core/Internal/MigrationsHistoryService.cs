@@ -5,26 +5,28 @@ namespace Nazare.Core.Internal
 {
     internal interface IMigrationsHistoryService
     {
-        void EnsureMigrationsHistoryCreation(IDbConnection connection, bool verbose);
-        Task EnsureMigrationsHistoryCreationAsync(IDbConnection connection, bool verbose, CancellationToken cancellationToken);
+        void EnsureMigrationsHistoryCreation(IDbConnection connection, IDbTransaction transaction, DeployChanges deployChanges);
+        Task EnsureMigrationsHistoryCreationAsync(IDbConnection connection, IDbTransaction transaction, DeployChanges deployChanges, CancellationToken cancellationToken);
     }
 
     internal sealed class MigrationsHistoryService : IMigrationsHistoryService
     {
-        public void EnsureMigrationsHistoryCreation(IDbConnection connection, bool verbose)
+        public void EnsureMigrationsHistoryCreation(IDbConnection connection, IDbTransaction transaction, DeployChanges deployChanges)
         {
             if (connection is DbConnection conn)
             {
-                using var command = conn.CreateCommand();
+                var verbose = deployChanges.Verbose;
+
+                using var command = transaction is DbTransaction tc ? CreateTransactionCommand(conn, tc) : conn.CreateCommand();
 
                 if (verbose)
                     Console.WriteLine("[BEGIN] Executing migrations creation batch.");
 
-                command.CommandText = string.Join(";",
+                command.CommandText = string.Join(" ",
                 [
-                    GetCreateTableScript(),
-                    GetCreateIdxPversionPscript(),
-                    GetCreateIdxPversion()
+                    GetCreateTableScript(deployChanges.DatabaseProvider),
+                    GetCreateIdxPversionPscript(deployChanges.DatabaseProvider),
+                    GetCreateIdxPversion(deployChanges.DatabaseProvider)
                 ]);
 
                 command.ExecuteNonQuery();
@@ -34,20 +36,22 @@ namespace Nazare.Core.Internal
             }
         }
 
-        public async Task EnsureMigrationsHistoryCreationAsync(IDbConnection connection, bool verbose, CancellationToken cancellationToken = default)
+        public async Task EnsureMigrationsHistoryCreationAsync(IDbConnection connection, IDbTransaction transaction, DeployChanges deployChanges, CancellationToken cancellationToken = default)
         {
             if (connection is DbConnection conn)
             {
-                using var command = conn.CreateCommand();
+                var verbose = deployChanges.Verbose;
+
+                using var command = transaction is DbTransaction tc ? CreateTransactionCommand(conn, tc) : conn.CreateCommand();
 
                 if (verbose)
                     Console.WriteLine("[BEGIN] Executing async migrations creation batch.");
 
                 command.CommandText = string.Join(";",
                 [
-                    GetCreateTableScript(),
-                    GetCreateIdxPversionPscript(),
-                    GetCreateIdxPversion()
+                    GetCreateTableScript(deployChanges.DatabaseProvider),
+                    GetCreateIdxPversionPscript(deployChanges.DatabaseProvider),
+                    GetCreateIdxPversion(deployChanges.DatabaseProvider)
                 ]);
 
                 await command.ExecuteNonQueryAsync(cancellationToken);
@@ -57,23 +61,77 @@ namespace Nazare.Core.Internal
             }
         }
 
-        private static string GetCreateIdxPversionPscript()
+        private static DbCommand CreateTransactionCommand(DbConnection connection, DbTransaction transaction)
         {
-            return @"
+            var command = connection.CreateCommand();
+            command.Transaction = transaction;
+
+            return command;
+        }
+
+        private static string GetCreateIdxPversionPscript(DatabaseProvider databaseProvider)
+        {
+            return databaseProvider switch
+            {
+                DatabaseProvider.SqlServer => @"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'idx_pversion_pscript'
+      AND object_id = OBJECT_ID('__nazaremigrationhistory')
+)
+BEGIN
+    CREATE INDEX idx_pversion_pscript
+    ON __nazaremigrationhistory (product_version, script_name);
+END",
+                _ => @"
 CREATE INDEX IF NOT EXISTS idx_pversion_pscript
-ON __nazaremigrationhistory (product_version, script_name)";
+ON __nazaremigrationhistory (product_version, script_name)"
+            };
         }
 
-        private static string GetCreateIdxPversion()
+        private static string GetCreateIdxPversion(DatabaseProvider databaseProvider)
         {
-            return @"
+            return databaseProvider switch
+            {
+                DatabaseProvider.SqlServer => @"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'idx_pversion'
+      AND object_id = OBJECT_ID('__nazaremigrationhistory')
+)
+BEGIN
+    CREATE INDEX idx_pversion
+    ON __nazaremigrationhistory (product_version);
+END",
+                _ => @"
 CREATE INDEX IF NOT EXISTS idx_pversion
-ON __nazaremigrationhistory (product_version)";
+ON __nazaremigrationhistory (product_version)"
+            };
         }
 
-        private static string GetCreateTableScript()
+        private static string GetCreateTableScript(DatabaseProvider databaseProvider)
         {
-            return @"
+            return databaseProvider switch
+            {
+                DatabaseProvider.SqlServer => @"
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = '__nazaremigrationhistory')
+BEGIN
+    CREATE TABLE __nazaremigrationhistory(
+
+        id bigint not null identity(1,1),
+        product_version varchar(10) not null,
+        script_name varchar(100) not null
+
+        PRIMARY KEY(id)
+
+    );
+END",
+                DatabaseProvider.Oracle => "",
+                DatabaseProvider.Postgresql => "",
+                DatabaseProvider.MySql => "",
+                _ => @"
 CREATE TABLE IF NOT EXISTS __nazaremigrationhistory(
 
     id bigint not null auto_increment,
@@ -82,7 +140,8 @@ CREATE TABLE IF NOT EXISTS __nazaremigrationhistory(
 
     PRIMARY KEY(id)
 
-)";
+)",
+            };
         }
     }
 }

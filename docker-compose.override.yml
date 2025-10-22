@@ -1,0 +1,9 @@
+services:
+  nazaredb:
+    container_name: nazaredb
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Admin123
+    restart: always
+    ports:
+      - "1433:1433"

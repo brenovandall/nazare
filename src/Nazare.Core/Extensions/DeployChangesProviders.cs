@@ -1,4 +1,4 @@
-﻿namespace Nazare.Core.Factory
+﻿namespace Nazare.Core.Extensions
 {
     public static class DeployChangesProviders
     {
