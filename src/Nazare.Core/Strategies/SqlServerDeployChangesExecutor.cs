@@ -27,7 +27,7 @@ namespace Nazare.Core.Strategies
             using var tc = conn.BeginTransaction();
 
             _migrationsHistoryService.EnsureMigrationsHistoryCreation(conn, tc, deployChanges);
-            _migrationService.Migrate(deployChanges, conn, tc);
+            _migrationService.Migrate(conn, tc, deployChanges);
 
             tc.Commit();
             conn.Close();
@@ -43,7 +43,7 @@ namespace Nazare.Core.Strategies
             using var tc = await conn.BeginTransactionAsync(cancellationToken);
 
             await _migrationsHistoryService.EnsureMigrationsHistoryCreationAsync(conn, tc, deployChanges, cancellationToken);
-            await _migrationService.MigrateAsync(deployChanges, conn, tc, cancellationToken);
+            await _migrationService.MigrateAsync(conn, tc, deployChanges, cancellationToken);
 
             await tc.CommitAsync(cancellationToken);
             await conn.CloseAsync();

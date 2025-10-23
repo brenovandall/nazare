@@ -3,7 +3,9 @@ using Nazare.Core.Strategies;
 
 namespace Nazare.Core.Factory
 {
-    internal class DeployChangesExecutorFactory : IFactory<IDeployChangesExecutor>, IDeployChangesExecutorFactory
+    public interface IDeployChangesExecutorFactory : IFactory<IDeployChangesExecutor>;
+
+    internal class DeployChangesExecutorFactory : IDeployChangesExecutorFactory
     {
         private readonly IDictionary<string, Func<IDeployChangesExecutor>> _strategies;
 
