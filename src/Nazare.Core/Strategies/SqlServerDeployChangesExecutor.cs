@@ -19,8 +19,6 @@ namespace Nazare.Core.Strategies
 
         public void Execute(DeployChanges deployChanges)
         {
-            var verboseMode = deployChanges.Verbose;
-
             using var conn = new SqlConnection(deployChanges.ConnectionString);
             conn.Open();
 
@@ -35,8 +33,6 @@ namespace Nazare.Core.Strategies
 
         public async Task ExecuteAsync(DeployChanges deployChanges, CancellationToken cancellationToken)
         {
-            var verboseMode = deployChanges.Verbose;
-
             using var conn = new SqlConnection(deployChanges.ConnectionString);
             await conn.OpenAsync(cancellationToken);
 

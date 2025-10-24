@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Nazare.Core.Extensions;
 using System.Data;
 using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nazare.Core.Internal
 {
@@ -20,38 +16,30 @@ namespace Nazare.Core.Internal
         {
             if (connection is DbConnection conn && transaction is DbTransaction tc)
             {
-                var files = Directory
-                    .GetFiles(deployChanges.Path)
-                    .OrderBy(f => Path.GetFileName(f));
-
+                var files = GetScriptFiles(deployChanges);
                 if (!files.Any())
                     return;
 
-                ISet<string> scripts = GetExecutedScripts(conn, tc);
+                var scripts = GetExecutedScripts(conn, tc);
 
                 foreach (var file in files)
                 {
                     var filename = Path.GetFileName(file);
-                    if (scripts.Contains(filename))
+                    if (scripts.Contains(filename) && FileNameChecker.CheckAndThrow(filename))
                     {
                         continue;
                     }
 
                     try
                     {
-                        var sqlScript = File.ReadAllText(file);
+                        string sqlScript = File.ReadAllText(file);
+                        string insertScript = GetInsertCommand(filename);
 
                         using var command = connection.CreateCommand();
                         command.Transaction = transaction;
-                        command.CommandText = string.Join(";",
-                            [
-                                sqlScript,
-                                @"INSERT INTO __nazaremigrationhistory (product_version, script_name) 
-                                  VALUES (@version, @script)"
-                            ]);
-                        command.Parameters.Insert(0, 1);
-                        command.Parameters.Insert(1, filename);
-
+                        command.CommandText = string.Join(";", [ sqlScript, insertScript ]);
+                        command.Parameters.Add(CreateCustomParameter(command, "@version", "1"));
+                        command.Parameters.Add(CreateCustomParameter(command, "@script", filename));
                         command.ExecuteNonQuery();
                     }
                     catch (Exception)
@@ -65,10 +53,44 @@ namespace Nazare.Core.Internal
 
         public Task MigrateAsync(IDbConnection connection, IDbTransaction transaction, DeployChanges deployChanges, CancellationToken cancellationToken)
         {
+            // todo (some day haha)
             throw new NotImplementedException();
         }
 
-        private static ISet<string> GetExecutedScripts(DbConnection connection, DbTransaction transaction)
+        private static IEnumerable<string> GetScriptFiles(DeployChanges deployChanges)
+        {
+            var projFolder = Path.GetDirectoryName(deployChanges.ProjectPath);
+
+            if (projFolder is null)
+                throw new Exception("Folder is null...");
+
+            var files = Directory
+                .GetFiles(Path.Combine(projFolder, deployChanges.Path))
+                .OrderBy(f => Path.GetFileName(f))
+                .AsEnumerable();
+
+            return files;
+        }
+
+        private static string GetInsertCommand(string filename)
+        {
+            if (filename.StartsWith("R__"))
+                return "";
+
+            return @"INSERT INTO __nazaremigrationhistory (product_version, script_name) 
+                     VALUES (@version, @script)";
+        }
+
+        private static IDbDataParameter CreateCustomParameter(IDbCommand command, string paramName, object? value)
+        {
+            var param = command.CreateParameter();
+            param.ParameterName = paramName;
+            param.Value = value;
+
+            return param;
+        }
+
+        private static HashSet<string> GetExecutedScripts(DbConnection connection, DbTransaction transaction)
         {
             var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
