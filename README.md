@@ -1,2 +1,2 @@
 ## Nazaré
-A project for runnning and versioning sql migrations.
+A simple project for runnning and versioning sql migrations.
