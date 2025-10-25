@@ -87,6 +87,7 @@ END",
                 _ => @"
 CREATE INDEX IF NOT EXISTS idx_pversion_pscript
 ON __nazaremigrationhistory (product_version, script_name)"
+                // ...
             };
         }
 
@@ -108,6 +109,7 @@ END",
                 _ => @"
 CREATE INDEX IF NOT EXISTS idx_pversion
 ON __nazaremigrationhistory (product_version)"
+                // ...
             };
         }
 
@@ -127,20 +129,8 @@ BEGIN
         PRIMARY KEY(id)
 
     );
-END",
-                DatabaseProvider.Oracle => "",
-                DatabaseProvider.Postgresql => "",
-                DatabaseProvider.MySql => "",
-                _ => @"
-CREATE TABLE IF NOT EXISTS __nazaremigrationhistory(
-
-    id bigint not null auto_increment,
-    product_version varchar(10) not null,
-    script_name varchar(100) not null
-
-    PRIMARY KEY(id)
-
-)",
+END"
+                // ...
             };
         }
     }

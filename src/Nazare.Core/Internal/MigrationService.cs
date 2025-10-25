@@ -38,7 +38,7 @@ namespace Nazare.Core.Internal
                         using var command = connection.CreateCommand();
                         command.Transaction = transaction;
                         command.CommandText = string.Join(";", [ sqlScript, insertScript ]);
-                        command.Parameters.Add(CreateCustomParameter(command, "@version", "1"));
+                        command.Parameters.Add(CreateCustomParameter(command, "@version", "1.0.0"));
                         command.Parameters.Add(CreateCustomParameter(command, "@script", filename));
                         command.ExecuteNonQuery();
                     }

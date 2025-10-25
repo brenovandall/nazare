@@ -32,12 +32,6 @@
             return this;
         }
 
-        public DeployChanges ToMySqlDatabase()
-        {
-            DatabaseProvider = DatabaseProvider.MySql;
-            return this;
-        }
-
         public DeployChanges WithProjectPath(string projectPath)
         {
             if (!File.Exists(projectPath))
@@ -85,7 +79,6 @@
     {
         SqlServer,
         Oracle,
-        Postgresql,
-        MySql
+        Postgresql
     }
 }

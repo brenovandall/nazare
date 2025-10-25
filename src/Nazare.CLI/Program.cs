@@ -9,6 +9,12 @@ internal class Program
 
     private static void Main(string[] args)
     {
+        if (args.Length == 0 || args[0] != "run")
+        {
+            ShowUsage();
+            return;
+        }
+
         RegisterServiceContainer();
 
         var builder = CreateBuilderByArgs(args);
@@ -22,13 +28,7 @@ internal class Program
 
     private static DeployChanges CreateBuilderByArgs(string[] args)
     {
-        if (args.Length == 0 || args[0] != "run")
-        {
-            ShowUsage();
-        }
-
         var builder = new DeployChanges();
-
         bool containsProject = false;
 
         for (int i = 1; i < args.Length; i++)
@@ -36,7 +36,6 @@ internal class Program
             switch (args[i])
             {
                 case "--project":
-                    //builder.WithProjectPath(Directory.GetCurrentDirectory() + args[i + 1]);
                     builder.WithProjectPath(args[i + 1]);
                     containsProject = true;
                     break;
